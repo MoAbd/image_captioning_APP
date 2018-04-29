@@ -1,0 +1,20 @@
+<html> 
+
+<head>
+<title>Captioning</title>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+</head>
+
+<body>
+
+    <h1>Image captioning</h1>
+
+    <form action="/predict" method="post" enctype="multipart/form-data">
+      <img src="{{url_for('static', filename='example.png')}}" /> 
+      <input type="submit" value="Predict"> {% if label %} {{ label }} {% endif %}
+    </form>
+
+</body>
+
+</html>
