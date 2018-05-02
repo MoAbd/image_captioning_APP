@@ -2,16 +2,18 @@ import torch
 import matplotlib.pyplot as plt
 import numpy as np 
 import argparse
-import pickle 
+import pickle
+import jsonpickle
 import os
 from torch.autograd import Variable 
 from torchvision import transforms 
 from build_vocab import Vocabulary
 from model import EncoderCNN, DecoderRNN
 from PIL import Image
+import cv2
 
 import flask
-from flask import Flask, request, render_template
+from flask import Flask, request, render_template, Response
 
 app = Flask(__name__)
 
@@ -26,8 +28,8 @@ def to_var(x, volatile=False):
         x = x.cuda()
     return Variable(x, volatile=volatile)
 
-def load_image(image_path, transform=None):
-    image = Image.open(image_path)
+def load_image(image, transform=None):
+    #image = Image.open(image_path)
     image = image.resize([224, 224], Image.LANCZOS)
     
     if transform is not None:
@@ -78,9 +80,13 @@ def main():
         encoder.load_state_dict(torch.load(args.encoder_path))
         decoder.load_state_dict(torch.load(args.decoder_path))
 
-        # Prepare Image
-        image_name = './png/example.png'
-        image = load_image('./png/example.png', transform)
+        r = request
+        img = r.data
+        nparr = np.fromstring(img, np.uint8)
+        # decode image
+        img = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
+        pil_im = Image.fromarray(img)
+        image = load_image(pil_im, transform)
         image_tensor = to_var(image, volatile=True)
         
         # If use gpu
@@ -101,9 +107,17 @@ def main():
             if word == '<end>':
                 break
         sentence = ' '.join(sampled_caption[1:-1])
+
+        # build a response dict to send back to client
+        response = {'message': sentence}
+        # encode response using jsonpickle
+        response_pickled = jsonpickle.encode(response)
+
+        return Response(response=response_pickled, status=200, mimetype="application/json")
+
         
         
-        return render_template('index.html', label = sentence, image = image_name)
+        
         '''image = Image.open(args.image)
         plt.imshow(np.asarray(image))'''
     
